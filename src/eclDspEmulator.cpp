@@ -42,7 +42,8 @@ eclDspEmulator::eclDspEmulator(const std::string& fname) :
 
 const dspResult& eclDspEmulator::fit(int ichannel, int trigger_time,
                          const std::vector<int>& adc_data) {
-    lftda(&adc_data[0], trigger_time, ichannel, 16);
+    m_data.assign(adc_data.cbegin(), adc_data.cend());
+    lftda(trigger_time, ichannel, 16);
     return m_dspr;
 }
 
@@ -56,31 +57,31 @@ void eclDspEmulator::TLimit(int& T) {
     T = T < T_l ? T_l : T;
 }
 
-void eclDspEmulator::ou(const int *y, long long ch1, int it) {
+void eclDspEmulator::ou(long long ch1, int it) {
     m_dspr.mi5 = it;
     m_dspr.lar = A1;
     m_dspr.ltr = T;
-    int ss = y[20] + y[21];
+    int ss = static_cast<int>(m_data[20] + m_data[21]);
     if (ss <= dspp->Ahard) validity_code += 4;
     m_dspr.lq = validity_code;
     m_dspr.lch4 = ch1;
 }
 
-void eclDspEmulator::lowAmpAlg(const int *y, int ch) {
+void eclDspEmulator::lowAmpAlg(int ch) {
     A1 = m_dspr.lch3;
     if (A1 < -128) {
         validity_code = 1;
         A1 = -128;
-        ou(y, 0);
+        ou(0);
         return;
     }
     validity_code = 2;
     B1 = 0;
-    C1 = inner_product(y+16, y+31, dspc->fg43i(ch, 1 + ttrig * 16),
+    C1 = inner_product(m_data.cbegin()+16, m_data.cbegin()+31, dspc->fg43i(ch, 1 + ttrig * 16),
                        dspc->lfg43(ch, ttrig * 16) * z0 + (1 << (dspp->k_c - 1))) >> dspp->k_c;
 }
 
-void eclDspEmulator::largeAmpAlg(const int *y) {
+void eclDspEmulator::largeAmpAlg() {
     if (dump) {
         cout << " == largeAmpAlg == " << endl;
         Dump();
@@ -90,16 +91,16 @@ void eclDspEmulator::largeAmpAlg(const int *y) {
     validity_code = 1;
     A1 = A1 - 112;
     m_dspr.lch3 = A1;
-    ou(y, 0);
+    ou(0);
 }
 
-void eclDspEmulator::fin(const int *y, int ch, int n16, int it) {
+void eclDspEmulator::fin(int ch, int n16, int it) {
     long long ch2 = z00 - n16 * C1;
     long long ch1 = (ch2 * ch2 * k_np[n16 - 1]) >> 16;
     for (int i = 1; i < 16; i++) {
         ch2 = A1 * dspc->lf(ch, i + it*16) + B1 * dspc->lf1(ch, i + it*16);
         ch2 >>= dspp->k1_chi;
-        ch2 = y[i + 15] - ch2 - C1;
+        ch2 = m_data[i + 15] - ch2 - C1;
         ch1 += ch2 * ch2;
     }
     if (validity_code == 2) {
@@ -118,19 +119,20 @@ void eclDspEmulator::fin(const int *y, int ch, int n16, int it) {
     B2 += dspp->chi_thres;
     if ((ch1 > B2) && (validity_code != 2)) validity_code = 3;
     if ((C1 < 0) && (validity_code == 0)) validity_code = 3;
-    ou(y, ch1);
+    ou(ch1);
 }
 
-void eclDspEmulator::iterAlg(const int *y, int ch, int ttrig2, int n16) {
+void eclDspEmulator::iterAlg(int ch, int ttrig2, int n16) {
     validity_code = 0;
     int it0 = 48 + ((23 - ttrig) << 2);
     if (dump) cout << "it0 " << it0 << endl;
     itLimit(it0);
 
     for (int iter = 1, it = it0; iter < 4; iter++) {
-        A1 = inner_product(y+16, y+31, dspc->fg31i(ch, 1 + it * 16),
+        A1 = inner_product(m_data.cbegin()+16, m_data.cbegin()+31, dspc->fg31i(ch, 1 + it * 16),
                            dspc->lfg31(ch, it * 16) * z0 + (1 << (dspp->k_a - 1))) >> dspp->k_a;
-        B1 = inner_product(y+16, y+31, dspc->fg32i(ch, 1 + it * 16), dspc->lfg32(ch, it * 16) * z0);
+        B1 = inner_product(m_data.cbegin()+16, m_data.cbegin()+31, dspc->fg32i(ch, 1 + it * 16),
+                           dspc->lfg32(ch, it * 16) * z0);
 
         if (dump) {
             cout << " == iter " << iter << ", it " << it << endl;
@@ -145,7 +147,7 @@ void eclDspEmulator::iterAlg(const int *y, int ch, int ttrig2, int n16) {
                 validity_code = 2;
                 A1 = m_dspr.lch3;
             }
-            ou(y, 0, it);
+            ou(0, it);
             return;
         }
 
@@ -155,14 +157,14 @@ void eclDspEmulator::iterAlg(const int *y, int ch, int ttrig2, int n16) {
             if (A1 > tooLargeAmp) A1 = A1 >> 3;
             A1 = A1 - 112;
             m_dspr.lcp = A1;
-            ou(y, 0, it);
+            ou(0, it);
             return;
         }
 
         if (A1 < dspp->A0) {
             it = it0;
-            lowAmpAlg(y, ch);
-            fin(y, ch, n16, it);
+            lowAmpAlg(ch);
+            fin(ch, n16, it);
             return;
         }
         long long B2 = 0;
@@ -208,7 +210,7 @@ void eclDspEmulator::iterAlg(const int *y, int ch, int ttrig2, int n16) {
                      << ", T " << T << endl;
             }
 
-            C1 = inner_product(y+16, y+31, dspc->fg33i(ch, it * 16 + 1),
+            C1 = inner_product(m_data.cbegin()+16, m_data.cbegin()+31, dspc->fg33i(ch, it * 16 + 1),
                                dspc->lfg33(ch, it * 16) * z0) + (1 << (dspp->k_c - 1));
             C1 >>= dspp->k_c;
             if (dump) cout << " ==== C1 " << C1 << " ==== " << endl;
@@ -229,7 +231,7 @@ void eclDspEmulator::Dump() const {
          << endl;
 }
 
-void eclDspEmulator::lftda(const int *y, int ttrig2, int ch, int n16) {
+void eclDspEmulator::lftda(int ttrig2, int ch, int n16) {
     dspp->update(*dspc, --ch);
     ttrig2 = ttrig2 - 2 * (ttrig2 / 8);
     ttrig = max(0, ttrig2 / 6);
@@ -242,25 +244,29 @@ void eclDspEmulator::lftda(const int *y, int ttrig2, int ch, int n16) {
     }
   
     //initial time index
-    z00 = accumulate(y+dspp->k_16, y+dspp->k_16+16, 0);
+    z00 = accumulate(m_data.cbegin()+dspp->k_16, m_data.cbegin()+dspp->k_16+16, 0);
     z0 = z00 >> dspp->kz_s;
 
     // first approximation without time correction
-    m_dspr.lch3 = inner_product(y+16, y+32, dspc->fg41i(ch, ttrig * 16 + 1),
+    m_dspr.lch3 = inner_product(m_data.cbegin()+16, m_data.cbegin()+31, dspc->fg41i(ch, ttrig * 16 + 1),
                                 dspc->lfg41(ch, ttrig * 16) * z0 + (1 << (dspp->k_a - 1))) >> dspp->k_a;
-    if (dump) cout << "First appr " << m_dspr.lch3 << endl;
+    if (dump) {
+//        cout << "f41 " << dspc->lfg41(ch, ttrig * 16) << ", z0 " << z0 << ", asd " << (1 << (dspp->k_a - 1)) << endl;
+        cout << "lch3 init " << dspc->lfg41(ch, ttrig * 16) * z0 + (1 << (dspp->k_a - 1)) << endl;
+        cout << "First appr " << m_dspr.lch3 << endl;
+    }
 
     // too large amplitude
     if (m_dspr.lch3 > tooLargeAmp) {
-        largeAmpAlg(y);
+        largeAmpAlg();
         return;
     }
 
     if (m_dspr.lch3 >= dspp->A0)
-        iterAlg(y, ch, ttrig2, n16);
+        iterAlg(ch, ttrig2, n16);
     else
-        lowAmpAlg(y, ch);
+        lowAmpAlg(ch);
 
     if (dump) Dump();
-    fin(y, ch, n16);
+    fin(ch, n16);
 }

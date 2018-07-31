@@ -26,22 +26,23 @@ class dspResult {
 
 class eclDspEmulator {
     /// the dsp logic emulator
-    void lftda(const int *y, int ttrig2, int ch, int n16=16);
+    void lftda(int ttrig2, int ch, int n16=16);
     /// store results
-    void ou(const int *y, long long ch1, int it=0);
+    void ou(long long ch1, int it=0);
     /// low amplitude
-    void lowAmpAlg(const int *y, int ch);
+    void lowAmpAlg(int ch);
     /// final calculations
-    void fin(const int *y, int ch, int n16, int it=0);
+    void fin(int ch, int n16, int it=0);
     /// Too large amplitude algorithm
-    void largeAmpAlg(const int *y);
+    void largeAmpAlg();
     /// Iterative algorithm
-    void iterAlg(const int *y, int ch, int ttrig2, int n16);
+    void iterAlg(int ch, int ttrig2, int n16);
 
     // parameters to be calculated
     dspResult m_dspr;
     std::unique_ptr<dspCoeffs> dspc;
     std::unique_ptr<dspPars> dspp;
+    std::vector<int64_t> m_data;
 
     // misterious parameters
     long long A1;
