@@ -115,18 +115,9 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
     int cr, sp, cop, flag;
     const auto nevt = itree->GetEntries();
     int badEvtCnt = 0;
-    const int theEvt = 2940;
-//    for (int i = theEvt; i < theEvt + 1; i++) {
     for (int i = 0; i < nevt; i++) {
         itree->GetEntry(i);
-//        if (idata->evt == 2643 && idata->cid == 8667) {
-//            cout << "Found it: " << i << endl;
-//        } else {
-//            continue;
-//        }
-
         if (i%100000 == 0) cout << " event " << i << endl;
-
         if (idata->amp < 500) continue;
         cr = idata->cra - 1;
         sp = idata->shp - 1;
