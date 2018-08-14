@@ -29,8 +29,8 @@ using std::accumulate;
 constexpr uint16_t copNum = 26;
 constexpr uint16_t shpNum = 24;
 
-eclSDSPTester::eclSDSPTester(const std::string& dspPath) :
-    m_refit(copNum * shpNum), dspdat_path(dspPath) {
+eclSDSPTester::eclSDSPTester(const std::string& dspPath, int ampThres) :
+    m_refit(copNum * shpNum), dspdat_path(dspPath), m_ampThres(ampThres) {
     init();
 }
 
@@ -111,12 +111,11 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
     int cr, sp, cop, flag;
     const auto nevt = itree->GetEntries();
     int badEvtCnt = 0;
-    const int32_t ampThres = 100;
 
     for (int i = 0; i < nevt; i++) {
         itree->GetEntry(i);
         if (i%100000 == 0) cout << " event " << i << endl;
-        if (idata->amp < ampThres) continue;
+        if (idata->amp < m_ampThres) continue;
         cr = idata->cra - 1;
         sp = idata->shp - 1;
 

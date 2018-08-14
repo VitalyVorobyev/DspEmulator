@@ -11,7 +11,8 @@ using std::endl;
 using std::cerr;
 
 POpt::POpt(int argc, char** argv) :
-    generalOptions("General"), fileOptions("File"), m_verb(false) {
+    generalOptions("General"), fileOptions("File"),
+    m_verb(false), m_ampThres(100) {
    
     generalOptions.add_options()
         ("help, h", "Help info")
@@ -25,7 +26,8 @@ POpt::POpt(int argc, char** argv) :
         ("inputPath",      po::value<string>()->required(), "Path to input file")
         ("inputTreeName",  po::value<string>()->required(), "Input Tree")
         ("outputPath",     po::value<string>()->required(), "Path to output file")
-        ("outputTreeName", po::value<string>()->required(), "Output tree");
+        ("outputTreeName", po::value<string>()->required(), "Output tree")
+        ("ampThres",   po::value<int>(&m_ampThres), "Low amplitude threshold");
 
     try {
         po::store(po::parse_command_line(argc, argv, generalOptions), vm);

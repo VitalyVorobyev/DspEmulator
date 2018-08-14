@@ -7,6 +7,7 @@
 #include <iomanip>  // setw
 
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::make_unique;
 using std::max;
@@ -211,10 +212,10 @@ void eclDspEmulator::lftda(int ttrig2, int ch, int n16) {
     ttrig = max(0, ttrig2 / 6);
 
     try {
-    if (dspp->k_16 + n16 != 16)
-        throw new runtime_error("disagreement in number of the points");
+        if (dspp->k_16 + n16 != 16)
+            throw new runtime_error("disagreement in number of the points");
     } catch (const runtime_error& e) {
-        cout << e.what() << endl;
+        cerr << e.what() << endl;
     }
   
     //initial time index

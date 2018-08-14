@@ -15,6 +15,7 @@ class POpt {
     /// Map to store configuration
     std::map<std::string, std::string> pars;
     bool m_verb;
+    int m_ampThres;
 
     /// Parse config file
     void parseConfig();
@@ -41,4 +42,6 @@ class POpt {
     inline std::string otree() const {return pars.at("otree");}
     /// Verbatim output. False by default
     inline bool verb() const {return m_verb;}
+    /// Amplitude threshold. Will skip events with amplitude less then the threshold
+    inline int ampThres() const {return m_ampThres;}
 };
