@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <numeric>
 
 #include <TTree.h>
 #include <TFile.h>
@@ -23,23 +24,25 @@ using std::tuple;
 using std::make_tuple;
 using std::move;
 using std::get;
+using std::accumulate;
 
-const string dspdat_path("/home/vitaly/AdcBits/adcfit/share/eclcoefs/");
+constexpr uint16_t copNum = 26;
+constexpr uint16_t shpNum = 24;
 
-eclSDSPTester::eclSDSPTester(const std::string& chmap) : m_refit(26 * 24) {
-    // m_chm(make_unique<eclChMapper>(chmap)) {
+eclSDSPTester::eclSDSPTester(const std::string& dspPath) :
+    m_refit(copNum * shpNum), dspdat_path(dspPath) {
     init();
 }
 
-inline uint16_t cidIdx(uint16_t i, uint16_t j) {return i * 24 + j;}
+inline uint16_t cidIdx(uint16_t i, uint16_t j) {return i * shpNum + j;}
 
 uint16_t crateIdx(uint16_t j) {
     return j > 11 ? j - 11 : j + 1;
 }
 
 uint16_t shaperIdx(uint16_t j, uint16_t i) {
-    if (j > 11) return i > 17 ? i - 18 + 45 : 2 * i + 2;
-                return i > 17 ? i - 18 + 37 : 2 * i + 1;
+    if (j > 11) {return i > 17 ? i - 18 + 45 : 2 * i + 2;}
+                 return i > 17 ? i - 18 + 37 : 2 * i + 1;
 }
 
 uint16_t copperIdx(uint16_t cr) {
@@ -48,25 +51,18 @@ uint16_t copperIdx(uint16_t cr) {
     return cr - 26;
 }
 
-string dspdat(uint16_t i, uint16_t j) {
+string eclSDSPTester::dspdat(uint16_t i, uint16_t j)  const {
     const string jstr = j < 10 ? "0" + to_string(j) : to_string(j);
     return dspdat_path + to_string(i+1) + "/" + to_string(j) + "/dsp"
            + jstr + ".dat";
 }
 
 void eclSDSPTester::init() {
-    cout << "size: " << m_refit.size() << endl;
-    for (uint16_t i = 0; i < 26; i++) {
-        const int sted = i < 18 ? 24 : 21;
+    for (uint16_t i = 0; i < copNum; i++) {
+        const int sted = i < 18 ? shpNum : 21;
         for (uint16_t j = 0; j < sted; j++) {
             const auto idx = cidIdx(i, j);
             const auto ifile = dspdat(i, j);
-            if (false && dump)
-                cout << "Init ecldsp#" << i
-                     << " j=" << j
-                     << " cr=" << crateIdx(j)
-                     << " sp=" << shaperIdx(j, i)
-                     << " from file " << ifile << endl;
             m_refit[idx] = make_unique<eclDspEmulator>(ifile);
         }
     }
@@ -115,10 +111,12 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
     int cr, sp, cop, flag;
     const auto nevt = itree->GetEntries();
     int badEvtCnt = 0;
+    const int32_t ampThres = 100;
+
     for (int i = 0; i < nevt; i++) {
         itree->GetEntry(i);
         if (i%100000 == 0) cout << " event " << i << endl;
-        if (idata->amp < 500) continue;
+        if (idata->amp < ampThres) continue;
         cr = idata->cra - 1;
         sp = idata->shp - 1;
 
@@ -128,8 +126,7 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
         if (dump) cout << "cop " << cop << ", sp " << sp << ", ch " << idata->chn << endl;
         auto& fitter = *m_refit[cidIdx(cop, sp)];
 
-        flag = 0;
-        for (int j = 0; j < 16; j++) flag += idata->adc[j] / 16;
+        flag = accumulate(idata->adc.cbegin(), idata->adc.cbegin() + 16, 0) / 16;
         if (flag > 0) {
             const auto& fitres = fitter.fit(idata->chn, idata->trg, idata->adc);
             if (idata->amp != fitres.lar || idata->tim != fitres.ltr) {

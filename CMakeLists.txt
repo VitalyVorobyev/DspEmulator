@@ -6,7 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_BUILD_TYPE Release)
 
+add_definitions(-Wall)
+
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+FIND_PACKAGE(Boost 1.65 COMPONENTS program_options REQUIRED)
 find_package(ROOT REQUIRED COMPONENTS MathCore RIO Hist Tree Net)
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 include(${ROOT_USE_FILE})
@@ -22,7 +25,7 @@ target_link_libraries(eclFitHit ${ROOT_LIBRARIES})
 file(GLOB SOURCES src/*.cpp)
 add_executable(adcfit ${SOURCES})
 
-target_link_libraries(adcfit ${ROOT_LIBRARIES})
+target_link_libraries(adcfit ${ROOT_LIBRARIES} ${Boost_LIBRARIES})
 target_link_libraries(adcfit eclFitHit)
 
 install(TARGETS adcfit DESTINATION /usr/local/bin)

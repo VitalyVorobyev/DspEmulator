@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <cstdint>
 
 #include "eclDspEmulator.h"
 
@@ -22,16 +23,18 @@ class eclSDSPTester {
                               std::unique_ptr<eclFitHit> >;
 
     std::vector<std::unique_ptr<eclDspEmulator> > m_refit;
+    std::string dspdat_path;
 
+    std::string dspdat(uint16_t i, uint16_t j) const;
     void init();
 
     ITuple getTree(const std::string& ifname, const std::string& itname) const;
     OTuple makeTree(const std::string& ofname, const std::string& otname) const;
 
  public:
-    /** Constructor */
-    eclSDSPTester(const std::string& chmap);
-    /**  */
+    /// Constructor
+    eclSDSPTester(const std::string& dspPath);
+    /// Make refit and save result in file
     void refit(const std::string& ifname,
                const std::string& itname,
                const std::string& ofname,
