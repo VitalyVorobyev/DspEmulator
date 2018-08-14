@@ -8,7 +8,7 @@ using namespace std;
 int main(int argc, char** argv) {
     POpt opt(argc, argv);
 
-    eclSDSPTester tester(opt.dspPath(), opt.ampThres());
+    eclSDSPTester tester(opt.dspPath(), opt.logPath() + opt.logFile(), opt.ampThres());
 
     tester.refit(opt.ipath() + opt.ifile(), opt.itree(),
                  opt.opath() + opt.ofile(), opt.otree(), opt.verb());

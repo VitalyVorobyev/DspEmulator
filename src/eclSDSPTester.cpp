@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <numeric>
+#include <fstream>
 
 #include <TTree.h>
 #include <TFile.h>
@@ -25,12 +26,15 @@ using std::make_tuple;
 using std::move;
 using std::get;
 using std::accumulate;
+using std::ofstream;
+using std::runtime_error;
 
 constexpr uint16_t copNum = 26;
 constexpr uint16_t shpNum = 24;
 
-eclSDSPTester::eclSDSPTester(const std::string& dspPath, int ampThres) :
-    m_refit(copNum * shpNum), dspdat_path(dspPath), m_ampThres(ampThres) {
+eclSDSPTester::eclSDSPTester(const std::string& dspPath, const string& logFile, int ampThres) :
+    m_refit(copNum * shpNum), dspdat_path(dspPath), m_logFile(logFile),
+    m_ampThres(ampThres) {
     init();
 }
 
@@ -112,6 +116,12 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
     const auto nevt = itree->GetEntries();
     int badEvtCnt = 0;
 
+    ofstream logfile(m_logFile, ofstream::out);
+    if (!logfile.good()) {
+        cerr << "Cannot create file " << m_logFile << endl;
+        throw new runtime_error("");
+    }
+
     for (int i = 0; i < nevt; i++) {
         itree->GetEntry(i);
         if (i%100000 == 0) cout << " event " << i << endl;
@@ -146,10 +156,12 @@ void eclSDSPTester::refit(const std::string& ifname, const std::string& itname,
                     idata->Print();
                     odata->Print();
                 }
+                logfile << " ----- " << endl << idata->toString() << endl << odata->toString() << endl;
                 otree->Fill();
             }
         }
     }
+    logfile.close();
     cout << "End of event loop " << badEvtCnt << "/" << nevt
          << " (" << static_cast<double>(badEvtCnt) / nevt << ")" << endl;
     ofile->cd();

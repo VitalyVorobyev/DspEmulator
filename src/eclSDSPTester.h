@@ -24,6 +24,7 @@ class eclSDSPTester {
 
     std::vector<std::unique_ptr<eclDspEmulator> > m_refit;
     std::string dspdat_path;
+    std::string m_logFile;
     const int32_t m_ampThres;
 
     std::string dspdat(uint16_t i, uint16_t j) const;
@@ -34,7 +35,7 @@ class eclSDSPTester {
 
  public:
     /// Constructor
-    eclSDSPTester(const std::string& dspPath, int ampThres=100);
+    eclSDSPTester(const std::string& dspPath, const std::string& logFile, int ampThres=100);
     /// Make refit and save result in file
     void refit(const std::string& ifname,
                const std::string& itname,

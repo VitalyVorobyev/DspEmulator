@@ -38,6 +38,10 @@ class POpt {
     inline std::string ofile() const {return pars.at("ofile");}
     /// Output files path
     inline std::string opath() const {return pars.at("opath");}
+    /// Log dir
+    inline std::string logPath() const {return pars.at("logPath");}
+    /// Log file
+    inline std::string logFile() const {return pars.at("logFile");}
     /// Output TTree name
     inline std::string otree() const {return pars.at("otree");}
     /// Verbatim output. False by default

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <string>
+#include <iostream>
 #include <TObject.h>
 
 /**
@@ -20,12 +22,13 @@ class eclFitHit {  // : public TObject {
     int chn;
     std::vector<int> adc;
 
-    /** Constructor */
+    /// Constructor
     eclFitHit() : evt(0), cid(0), amp(0), tim(0), qua(0), chi(0),
         trg(0), cra(0), shp(0), chn(0), adc(64, 0) {}
 
-    /** Print to stdout */
-    void Print() const;
+    /// To string
+    std::string toString() const;
+    /// Print to stdout
+    inline void Print() const {std::cout << toString() << std::endl;}
     ClassDef(eclFitHit, 1)  // header
 };
-

@@ -15,19 +15,20 @@ POpt::POpt(int argc, char** argv) :
     m_verb(false), m_ampThres(100) {
    
     generalOptions.add_options()
-        ("help, h", "Help info")
-        ("config, cf", po::value<string>()->default_value("config.cfg"), "Config file")
-        ("ifile, f",   po::value<string>(), "Input file")
-        ("itree, t",   po::value<string>(), "Input tree name")
-        ("verb, v", "Verbatim output");
+            ("help, h", "Help info")
+            ("config, cf", po::value<string>()->default_value("config.cfg"), "Config file")
+            ("ifile, f",   po::value<string>(), "Input file")
+            ("itree, t",   po::value<string>(), "Input tree name")
+            ("verb, v", "Verbatim output");
 
     fileOptions.add_options()
-        ("dspPath",        po::value<string>()->required(), "Path to DSP coeffs")
-        ("inputPath",      po::value<string>()->required(), "Path to input file")
-        ("inputTreeName",  po::value<string>()->required(), "Input Tree")
-        ("outputPath",     po::value<string>()->required(), "Path to output file")
-        ("outputTreeName", po::value<string>()->required(), "Output tree")
-        ("ampThres",   po::value<int>(&m_ampThres), "Low amplitude threshold");
+            ("dspPath",        po::value<string>()->required(), "Path to DSP coeffs")
+            ("inputPath",      po::value<string>()->required(), "Path to input file")
+            ("inputTreeName",  po::value<string>()->required(), "Input Tree")
+            ("outputPath",     po::value<string>()->required(), "Path to output file")
+            ("outputTreeName", po::value<string>()->required(), "Output tree")
+            ("logPath",        po::value<string>()->required(), "Log dir")
+            ("ampThres",       po::value<int>(&m_ampThres), "Low amplitude threshold");
 
     try {
         po::store(po::parse_command_line(argc, argv, generalOptions), vm);
@@ -50,9 +51,9 @@ POpt::POpt(int argc, char** argv) :
             throw new po::error("wrong config file");
         }
         if (vm.count("ifile")) {
-//            cout <<
             pars.emplace("ifile", vm["ifile"].as<string>());
-            pars.emplace("ofile", "refit_" + vm["ifile"].as<string>());
+            pars.emplace("ofile", "refit_" + pars.at("ifile"));
+            pars.emplace("logFile", pars.at("ifile").substr(0, pars.at("ifile").find_last_of('.')) + ".log");
         } else {
             throw new po::error("input file is not specified");
         }
@@ -90,6 +91,11 @@ void POpt::parseConfig() {
         pars.emplace("otree", vm["outputTreeName"].as<string>());
     else
         throw new po::error("Output TTree name not specified");
+
+    if (vm.count("logPath"))
+        pars.emplace("logPath", vm["logPath"].as<string>());
+    else
+        throw new po::error("Log path not specified");
 }
 
 void POpt::helpScreen() {
